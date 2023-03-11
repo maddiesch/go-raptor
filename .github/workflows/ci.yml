@@ -1,6 +1,7 @@
 name: Golang Test and Build
 on:
-  push: [main]
+  push:
+    branches: [main]
   pull_request: {}
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
