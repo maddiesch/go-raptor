@@ -71,6 +71,12 @@ type CreateTableBuilder struct {
 	ifNotExists bool
 }
 
+func (c *CreateTableBuilder) IfNotExists() *CreateTableBuilder {
+	c.ifNotExists = true
+
+	return c
+}
+
 func (c *CreateTableBuilder) PrimaryKey(name string, cType ColumnType) *CreateTableBuilder {
 	c.primaryKey = &ColumnBuilder{name: name, cType: cType, nullable: false, unique: true, pk: true}
 
