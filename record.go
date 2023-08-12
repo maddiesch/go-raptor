@@ -137,6 +137,42 @@ FieldLoop:
 	return s.Scan(valPtr...)
 }
 
+// MarshalObject converts the given Struct into a Database Record map.
+//
+// It used the `db` tag to map struct fields names to database column names.
+func MarshalObject(obj any) (Record, error) {
+	rv := reflect.ValueOf(obj)
+	if rv.Kind() == reflect.Pointer {
+		rv = rv.Elem()
+	}
+	if rv.Kind() != reflect.Struct {
+		return nil, ErrRequireStruct
+	}
+
+	srcType := rv.Type()
+
+	rec := make(Record)
+
+FieldLoop:
+	for fi := 0; fi < srcType.NumField(); fi++ {
+		f := srcType.Field(fi)
+
+		name := f.Name
+		switch f.Tag.Get("db") {
+		case "-":
+			continue FieldLoop
+		case "":
+			// no-op
+		default:
+			name = f.Tag.Get("db")
+		}
+
+		rec[name] = rv.FieldByName(f.Name).Interface()
+	}
+
+	return rec, nil
+}
+
 type RecordMarshaler interface {
 	MarshalRecord() (Record, error)
 }

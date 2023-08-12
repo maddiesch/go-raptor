@@ -108,3 +108,43 @@ func TestRecordUnmarshal(t *testing.T) {
 		assert.Nil(t, pet.Age)
 	})
 }
+
+func TestMarshalObject(t *testing.T) {
+	t.Run("given a struct pointer with standard fields", func(t *testing.T) {
+		pet := &test.Pet{
+			ID:       100,
+			PersonID: 112,
+			Kind:     "Dog",
+			Name:     "Sterling",
+			Age:      test.Ptr(5),
+		}
+
+		rec, err := raptor.MarshalObject(pet)
+		require.NoError(t, err)
+
+		assert.Equal(t, int64(100), rec["ID"])
+		assert.Equal(t, int64(112), rec["ParentID"])
+		assert.Equal(t, "Dog", rec["Type"])
+		assert.Equal(t, "Sterling", rec["Name"])
+		assert.Equal(t, int(5), *rec["Age"].(*int))
+	})
+
+	t.Run("given a value struct with standard fields", func(t *testing.T) {
+		pet := test.Pet{
+			ID:       100,
+			PersonID: 112,
+			Kind:     "Dog",
+			Name:     "Sterling",
+			Age:      test.Ptr(5),
+		}
+
+		rec, err := raptor.MarshalObject(pet)
+		require.NoError(t, err)
+
+		assert.Equal(t, int64(100), rec["ID"])
+		assert.Equal(t, int64(112), rec["ParentID"])
+		assert.Equal(t, "Dog", rec["Type"])
+		assert.Equal(t, "Sterling", rec["Name"])
+		assert.Equal(t, int(5), *rec["Age"].(*int))
+	})
+}
