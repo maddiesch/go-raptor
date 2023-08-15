@@ -133,6 +133,7 @@ func (r *Row) Scan(dest ...any) error {
 		}
 		return ErrNoRows
 	}
+
 	err := r.rows.Scan(dest...)
 	if err != nil {
 		return err

@@ -236,6 +236,21 @@ func TestConn_QueryRow(t *testing.T) {
 	})
 }
 
+func TestUpdateReturning(t *testing.T) {
+	conn, ctx := createTestConnection(t)
+	defer conn.Close()
+
+	t.Run(`UPDATE "TestTable" SET "Age" = ? WHERE "ID" = ? RETURNING "Name";`, func(t *testing.T) {
+		row := conn.QueryRow(ctx, `UPDATE "TestTable" SET "Age" = ? WHERE "ID" = ? RETURNING "Name";`, 50, 1)
+
+		var name string
+		err := row.Scan(&name)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "test", name)
+	})
+}
+
 func TestNewQueryLogger(t *testing.T) {
 	var out strings.Builder
 
