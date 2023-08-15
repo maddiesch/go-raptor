@@ -1,0 +1,28 @@
+package migrate_test
+
+import (
+	"context"
+	"os"
+	"testing"
+
+	"github.com/maddiesch/go-raptor"
+	"github.com/maddiesch/go-raptor/migrate"
+	"github.com/stretchr/testify/require"
+)
+
+func TestUp(t *testing.T) {
+	db, err := raptor.New(":memory:?mode=memory&cache=shared")
+	require.NoError(t, err)
+
+	db.SetLogger(raptor.NewQueryLogger(os.Stderr))
+
+	m := migrate.Migration{
+		Name: "testing-migration",
+		Up: []string{
+			`CREATE TABLE "migration_table" ("example" TEXT);`,
+		},
+	}
+
+	err = migrate.Up(context.Background(), db, m)
+	require.NoError(t, err)
+}
