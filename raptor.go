@@ -10,12 +10,12 @@ import (
 	"sync"
 	"sync/atomic"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 const (
 	// DriverName is the name of the SQLite3 driver.
-	DriverName = "sqlite3"
+	DriverName = "sqlite"
 )
 
 var (
