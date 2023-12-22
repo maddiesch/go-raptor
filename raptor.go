@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	connID uint64
+	connID atomic.Uint64
 )
 
 // New opens a new database connection
@@ -29,20 +29,21 @@ func New(source string) (*Conn, error) {
 		return nil, err
 	}
 
-	return &Conn{
-		db:  db,
-		id:  atomic.AddUint64(&connID, 1),
-		log: NewNoopQueryLogger(),
-	}, nil
+	c := &Conn{
+		db: db,
+		id: connID.Add(1),
+	}
+	c.SetLogger(NewNoopQueryLogger())
+
+	return c, nil
 }
 
 // Conn represents a connection to a SQLite3 database.
 type Conn struct {
-	mu  sync.RWMutex // Config mutex
-	id  uint64       // Connection id
-	sp  uint64       // Savepoint id
-	db  *sql.DB      // Underlying database connection
-	log QueryLogger  // Log query
+	id  uint64        // Connection id
+	sp  atomic.Uint64 // Savepoint id
+	db  *sql.DB       // Underlying database connection
+	log atomic.Value  // Log query
 }
 
 // Close the database connection and perform any necessary cleanup
@@ -50,17 +51,20 @@ type Conn struct {
 // Once close is called, new queries will be rejected.
 // Close will block until all outstanding queries have completed.
 func (c *Conn) Close() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	return c.db.Close()
+}
+
+type logger struct {
+	QueryLogger
 }
 
 // SetLogger assigns a logger instance to the connection.
 func (c *Conn) SetLogger(l QueryLogger) {
-	c.mu.Lock()
-	c.log = l
-	c.mu.Unlock()
+	c.log.Store(&logger{l})
+}
+
+func (c *Conn) logger() QueryLogger {
+	return c.log.Load().(*logger).QueryLogger
 }
 
 // Ping verifies a connection to the database is still alive, establishing a connection if necessary.
@@ -169,9 +173,7 @@ func (c *Conn) Exec(ctx context.Context, query string, args ...any) (Result, err
 }
 
 func (c *Conn) exec(ctx context.Context, query string, args ...any) (Result, error) {
-	c.mu.RLock()
-	c.log.LogQuery(ctx, query, args)
-	c.mu.RUnlock()
+	c.logger().LogQuery(ctx, query, args)
 
 	r, err := c.db.ExecContext(ctx, query, args...)
 
@@ -189,9 +191,7 @@ func (c *Conn) Query(ctx context.Context, query string, args ...any) (*Rows, err
 }
 
 func (c *Conn) query(ctx context.Context, query string, args []any) (*Rows, error) {
-	c.mu.RLock()
-	c.log.LogQuery(ctx, query, args)
-	c.mu.RUnlock()
+	c.logger().LogQuery(ctx, query, args)
 
 	r, err := c.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -206,9 +206,7 @@ func (c *Conn) QueryRow(ctx context.Context, query string, args ...any) *Row {
 }
 
 func (c *Conn) queryRow(ctx context.Context, query string, args []any) *Row {
-	c.mu.RLock()
-	c.log.LogQuery(ctx, query, args)
-	c.mu.RUnlock()
+	c.logger().LogQuery(ctx, query, args)
 
 	r, err := c.db.QueryContext(ctx, query, args...)
 
@@ -216,7 +214,7 @@ func (c *Conn) queryRow(ctx context.Context, query string, args []any) *Row {
 }
 
 func (c *Conn) newSavepointName() string {
-	return fmt.Sprintf("tx_%d_%d", c.id, atomic.AddUint64(&c.sp, 1))
+	return fmt.Sprintf("tx_%d_%d", c.id, c.sp.Add(1))
 }
 
 // TxRollbackError is returned when a transaction is rolled back and the rollback also returns an error.
