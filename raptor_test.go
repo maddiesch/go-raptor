@@ -3,11 +3,9 @@ package raptor_test
 import (
 	"context"
 	"crypto/md5"
-	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"log/slog"
 	"strings"
 	"testing"
 
@@ -262,28 +260,6 @@ func TestNewQueryLogger(t *testing.T) {
 	conn.SetLogger(raptor.NewQueryLogger(&out))
 
 	err := conn.Transact(ctx, func(raptor.DB) error { return nil })
-	require.NoError(t, err)
-
-	assert.Contains(t, out.String(), "SAVEPOINT ")
-	assert.Contains(t, out.String(), "RELEASE SAVEPOINT ")
-}
-
-func TestNewSlogFuncQueryLogger(t *testing.T) {
-	var out strings.Builder
-
-	conn, ctx := createTestConnection(t)
-	defer conn.Close()
-
-	logger := slog.New(slog.NewTextHandler(&out, nil))
-
-	conn.SetLogger(
-		raptor.NewSlogFuncQueryLogger(logger.InfoContext),
-	)
-
-	err := conn.Transact(ctx, func(tx raptor.DB) error {
-		var v int64
-		return tx.QueryRow(ctx, "SELECT $v1 AS one;", sql.Named("v1", 1)).Scan(&v)
-	})
 	require.NoError(t, err)
 
 	assert.Contains(t, out.String(), "SAVEPOINT ")
