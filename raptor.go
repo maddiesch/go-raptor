@@ -30,8 +30,9 @@ func New(source string) (*Conn, error) {
 	}
 
 	c := &Conn{
-		db: db,
-		id: connID.Add(1),
+		db:       db,
+		id:       connID.Add(1),
+		queryLog: new(atomic.Pointer[logger]),
 	}
 	c.SetLogger(NewNoopQueryLogger())
 
@@ -40,10 +41,10 @@ func New(source string) (*Conn, error) {
 
 // Conn represents a connection to a SQLite3 database.
 type Conn struct {
-	id  uint64        // Connection id
-	sp  atomic.Uint64 // Savepoint id
-	db  *sql.DB       // Underlying database connection
-	log atomic.Value  // Log query
+	id       uint64                  // Connection id
+	sp       atomic.Uint64           // Savepoint id
+	db       *sql.DB                 // Underlying database connection
+	queryLog *atomic.Pointer[logger] // Log query
 }
 
 // Close the database connection and perform any necessary cleanup
@@ -58,13 +59,17 @@ type logger struct {
 	QueryLogger
 }
 
-// SetLogger assigns a logger instance to the connection.
 func (c *Conn) SetLogger(l QueryLogger) {
-	c.log.Store(&logger{l})
+	c.queryLog.Store(&logger{l})
 }
 
-func (c *Conn) logger() QueryLogger {
-	return c.log.Load().(*logger).QueryLogger
+// SetLogger assigns a logger instance to the connection.
+func (c *Conn) SetQueryLogger(l QueryLogger) {
+	c.queryLog.Store(&logger{l})
+}
+
+func (c *Conn) queryLogger() QueryLogger {
+	return c.queryLog.Load().QueryLogger
 }
 
 // Ping verifies a connection to the database is still alive, establishing a connection if necessary.
@@ -173,7 +178,7 @@ func (c *Conn) Exec(ctx context.Context, query string, args ...any) (Result, err
 }
 
 func (c *Conn) exec(ctx context.Context, query string, args ...any) (Result, error) {
-	c.logger().LogQuery(ctx, query, args)
+	c.queryLogger().LogQuery(ctx, query, args)
 
 	r, err := c.db.ExecContext(ctx, query, args...)
 
@@ -191,7 +196,7 @@ func (c *Conn) Query(ctx context.Context, query string, args ...any) (*Rows, err
 }
 
 func (c *Conn) query(ctx context.Context, query string, args []any) (*Rows, error) {
-	c.logger().LogQuery(ctx, query, args)
+	c.queryLogger().LogQuery(ctx, query, args)
 
 	r, err := c.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -206,7 +211,7 @@ func (c *Conn) QueryRow(ctx context.Context, query string, args ...any) *Row {
 }
 
 func (c *Conn) queryRow(ctx context.Context, query string, args []any) *Row {
-	c.logger().LogQuery(ctx, query, args)
+	c.queryLogger().LogQuery(ctx, query, args)
 
 	r, err := c.db.QueryContext(ctx, query, args...)
 

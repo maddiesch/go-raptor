@@ -21,7 +21,13 @@ func createTestConnection(t test.TestingT) (*raptor.Conn, context.Context) {
 	conn, err := raptor.New(fmt.Sprintf("file:%s?mode=memory&cache=shared", hex.EncodeToString(nh[:])))
 	require.NoError(t, err)
 
-	_, err = conn.Exec(ctx, `CREATE TABLE "TestTable" ("ID" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "Name" TEXT NOT NULL DEFAULT '', "Age" INTEGER NOT NULL DEFAULT 0);`)
+	setupTestConnection(t, ctx, conn)
+
+	return conn, ctx
+}
+
+func setupTestConnection(t test.TestingT, ctx context.Context, conn *raptor.Conn) {
+	_, err := conn.Exec(ctx, `CREATE TABLE "TestTable" ("ID" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "Name" TEXT NOT NULL DEFAULT '', "Age" INTEGER NOT NULL DEFAULT 0);`)
 	require.NoError(t, err)
 
 	_, err = conn.Exec(ctx, `INSERT INTO "TestTable" ("Name", "Age") VALUES ('test', 100);`)
@@ -31,8 +37,6 @@ func createTestConnection(t test.TestingT) (*raptor.Conn, context.Context) {
 	require.NoError(t, err)
 
 	conn.SetLogger(&test.TestQueryLogger{TestingT: t})
-
-	return conn, ctx
 }
 
 func TestNewConn(t *testing.T) {
