@@ -19,6 +19,7 @@ type InsertValue struct {
 type InsertBuilder struct {
 	tableName string
 	orReplace bool
+	orIgnore  bool
 	values    map[string]any
 }
 
@@ -36,6 +37,14 @@ func (b *InsertBuilder) Into(tableName string) *InsertBuilder {
 
 func (b *InsertBuilder) OrReplace() *InsertBuilder {
 	b.orReplace = true
+	b.orIgnore = false
+
+	return b
+}
+
+func (b *InsertBuilder) OrIgnore() *InsertBuilder {
+	b.orIgnore = true
+	b.orReplace = false
 
 	return b
 }
@@ -61,6 +70,9 @@ func (b *InsertBuilder) Generate() (string, []any, error) {
 	query.WriteString("INSERT ")
 	if b.orReplace {
 		query.WriteString("OR REPLACE ")
+	}
+	if b.orIgnore {
+		query.WriteString("OR IGNORE ")
 	}
 	query.WriteStringf("INTO %s ", dialect.Identifier(b.tableName))
 

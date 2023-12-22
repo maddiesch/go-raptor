@@ -39,6 +39,19 @@ func TestInsertBuilder(t *testing.T) {
 		}
 	})
 
+	t.Run("insert or ignore", func(t *testing.T) {
+		query, args, err := statement.Insert().OrIgnore().Into("TestTable").Value("Name", "MTG").Value("Age", 30).Generate()
+
+		require.NoError(t, err)
+
+		assert.Equal(t, `INSERT OR IGNORE INTO "TestTable" ("Age", "Name") VALUES ($v1, $v2);`, query)
+
+		if assert.Len(t, args, 2) {
+			assert.Equal(t, sql.Named("v1", 30), args[0])
+			assert.Equal(t, sql.Named("v2", "MTG"), args[1])
+		}
+	})
+
 	t.Run("no values", func(t *testing.T) {
 		query, args, err := statement.Insert().Into("TestTable").Generate()
 
