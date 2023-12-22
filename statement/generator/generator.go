@@ -2,7 +2,7 @@ package generator
 
 import (
 	"fmt"
-	"sync"
+	"sync/atomic"
 )
 
 type Generator interface {
@@ -18,15 +18,11 @@ func NewIncrementingArgumentNameProvider() ArgumentNameProvider {
 }
 
 type incrementingArgumentNameProvider struct {
-	mu      sync.Mutex
-	current uint64
+	v atomic.Int64
 }
 
 func (i *incrementingArgumentNameProvider) Next() string {
-	i.mu.Lock()
-	i.current++
-	value := i.current
-	i.mu.Unlock()
+	value := i.v.Add(1)
 
 	return fmt.Sprintf("v%d", value)
 }
