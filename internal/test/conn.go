@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/maddiesch/go-raptor"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	_ "embed"
@@ -20,6 +21,10 @@ func Setup(t TestingT) (*raptor.Conn, context.Context) {
 	ctx := context.Background()
 	conn, err := raptor.New(fmt.Sprintf("file:db-%s?mode=memory&cache=shared", hex.EncodeToString(nh[:])))
 	require.NoError(t, err, "failed to open test database")
+
+	t.Cleanup(func() {
+		assert.NoError(t, conn.Close(), "failed to close test database")
+	})
 
 	_, err = conn.Exec(ctx, testDataSql)
 	require.NoError(t, err, "failed to prepare the test database")
