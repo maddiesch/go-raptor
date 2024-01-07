@@ -2,6 +2,7 @@ package raptor_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/maddiesch/go-raptor"
 	"github.com/maddiesch/go-raptor/internal/test"
@@ -147,4 +148,22 @@ func TestMarshalObject(t *testing.T) {
 		assert.Equal(t, "Sterling", rec["Name"])
 		assert.Equal(t, int(5), *rec["Age"].(*int))
 	})
+}
+
+func TestRecord(t *testing.T) {
+	createdAt := time.Now()
+
+	record := raptor.Record{
+		"ID":        int64(100),
+		"Name":      "Testing Record Accessor",
+		"CreatedAt": createdAt,
+		"IsRecord":  true,
+	}
+
+	assert.Equal(t, int64(100), record.GetInt("ID"))
+	assert.Equal(t, "Testing Record Accessor", record.GetString("Name"))
+	assert.Equal(t, createdAt, record.GetTime("CreatedAt"))
+	assert.Equal(t, true, record.GetBool("IsRecord"))
+	assert.Equal(t, "", record.GetString("ID"))
+	assert.Equal(t, "", record.GetString("FooBar"))
 }
