@@ -3,14 +3,18 @@ package test
 import (
 	"context"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 type TestingT interface {
 	require.TestingT
+	assert.TestingT
 
 	Log(...any)
+	Logf(string, ...any)
 	Name() string
+	Cleanup(func())
 }
 
 type TestQueryLogger struct {
