@@ -137,6 +137,45 @@ func TestLoad(t *testing.T) {
 	assert.Equal(t, 2, p.Len())
 }
 
+func TestWithValue(t *testing.T) {
+	var value atomic.Int64
+
+	p := pool.New[int64](pool.Config{MaxSize: 2}, func(context.Context) (int64, error) {
+		return value.Add(1), nil
+	})
+
+	t.Cleanup(func() {
+		p.Close(context.Background())
+	})
+
+	result, err := pool.WithValue(context.Background(), p, func(s int64) (int64, error) {
+		return s, nil
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), result)
+}
+
+func TestWithValue2(t *testing.T) {
+	var value atomic.Int64
+
+	p := pool.New[int64](pool.Config{MaxSize: 2}, func(context.Context) (int64, error) {
+		return value.Add(1), nil
+	})
+
+	t.Cleanup(func() {
+		p.Close(context.Background())
+	})
+
+	v1, v2, err := pool.WithValue2(context.Background(), p, func(s int64) (int64, int64, error) {
+		return s, s + 1, nil
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), v1)
+	assert.Equal(t, int64(2), v2)
+}
+
 type poolValueCloser struct {
 	called atomic.Bool
 }
