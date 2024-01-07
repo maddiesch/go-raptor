@@ -1,3 +1,4 @@
+// Package kv provides a simple key-value store backed by a Raptor SQLite database.
 package kv
 
 import (
