@@ -21,6 +21,12 @@ func createTestConnection(t test.TestingT) (*raptor.Conn, context.Context) {
 	conn, err := raptor.New(fmt.Sprintf("file:%s?mode=memory&cache=shared", hex.EncodeToString(nh[:])))
 	require.NoError(t, err)
 
+	t.Cleanup(func() {
+		if err := conn.Close(); err != nil {
+			t.Logf("failed to close connection: %v", err)
+		}
+	})
+
 	setupTestConnection(t, ctx, conn)
 
 	return conn, ctx
@@ -192,7 +198,6 @@ func TestConn_Transact(t *testing.T) {
 func TestConn_Query(t *testing.T) {
 	t.Run("query for a single row", func(t *testing.T) {
 		conn, ctx := createTestConnection(t)
-		defer conn.Close()
 
 		rows, err := conn.Query(ctx, `SELECT * FROM "TestTable" WHERE "Name" = ? LIMIT 1;`, "test")
 		require.NoError(t, err)
@@ -213,6 +218,36 @@ func TestConn_Query(t *testing.T) {
 		}
 
 		assert.Equal(t, 1, count)
+	})
+
+	t.Run("query in a transaction", func(t *testing.T) {
+		conn, ctx := createTestConnection(t)
+
+		err := conn.Transact(context.Background(), func(d raptor.DB) error {
+			rows, err := d.Query(ctx, `SELECT * FROM "TestTable" WHERE "Name" = ? LIMIT 1;`, "test")
+			require.NoError(t, err)
+
+			var count int
+			for rows.Next() {
+				count++
+
+				var name string
+				var id, age int
+
+				err := rows.Scan(&id, &name, &age)
+
+				require.NoError(t, err)
+
+				assert.Equal(t, "test", name)
+				assert.Equal(t, 100, age)
+			}
+
+			assert.Equal(t, 1, count)
+
+			return nil
+		})
+
+		require.NoError(t, err)
 	})
 }
 
