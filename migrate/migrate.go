@@ -19,9 +19,7 @@ type Migration struct {
 }
 
 func Up(ctx context.Context, db raptor.DB, m ...Migration) error {
-	createTableStatement := statement.CreateTable(MigrationTableName).IfNotExists().PrimaryKey("name", statement.ColumnTypeText)
-	_, err := raptor.ExecStatement(ctx, db, createTableStatement)
-	if err != nil {
+	if err := createMigrationTable(ctx, db); err != nil {
 		return err
 	}
 
@@ -51,6 +49,54 @@ func Up(ctx context.Context, db raptor.DB, m ...Migration) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func Down(ctx context.Context, db raptor.DB, m ...Migration) error {
+	if err := createMigrationTable(ctx, db); err != nil {
+		return err
+	}
+
+	for i := len(m) - 1; i >= 0; i-- {
+		mig := m[i]
+
+		queryExists := statement.Exists(
+			statement.Select("name").From(MigrationTableName).Where(conditional.Equal("name", mig.Name)),
+		)
+		var exists bool
+		if err := raptor.QueryRowStatement(ctx, db, queryExists).Scan(&exists); err != nil {
+			return err
+		}
+		if !exists {
+			continue
+		}
+
+		err := db.Transact(ctx, func(d raptor.DB) error {
+			for _, q := range mig.Down {
+				if _, err := d.Exec(ctx, q); err != nil {
+					return err
+				}
+			}
+
+			_, err := raptor.ExecStatement(ctx, d, statement.Delete().From(MigrationTableName).Where(conditional.Equal("name", mig.Name)))
+
+			return err
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func createMigrationTable(ctx context.Context, db raptor.DB) error {
+	createTableStatement := statement.CreateTable(MigrationTableName).IfNotExists().PrimaryKey("name", statement.ColumnTypeText)
+	_, err := raptor.ExecStatement(ctx, db, createTableStatement)
+	if err != nil {
+		return err
 	}
 
 	return nil
