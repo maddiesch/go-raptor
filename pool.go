@@ -7,12 +7,16 @@ import (
 	"github.com/maddiesch/go-raptor/pool"
 )
 
+// Pool implements a thread-safe pool of database connections.
+//
+// It works as a single-writer multi-reader connection.
 type Pool struct {
 	pool.Pool[*Conn]
 
 	wLock sync.RWMutex
 }
 
+// Create a new pool with the given number of maximum connections.
 func NewPool(size int64, fn func(context.Context) (*Conn, error)) *Pool {
 	config := pool.Config{
 		MaxSize: size,
