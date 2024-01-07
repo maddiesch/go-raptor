@@ -44,6 +44,18 @@ func TestConn_QueryStatement(t *testing.T) {
 	assert.False(t, rows.Next())
 }
 
+func TestConn_ExecStatement(t *testing.T) {
+	conn, ctx := test.Setup(t)
+
+	exec := statement.Insert().Into("People").ValueMap(map[string]any{
+		"FirstName": "Taylor",
+		"LastName":  "Swift",
+	})
+
+	_, err := conn.ExecStatement(ctx, exec)
+	assert.NoError(t, err)
+}
+
 func TestQueryRowStatement(t *testing.T) {
 	conn, ctx := test.Setup(t)
 
