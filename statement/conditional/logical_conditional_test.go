@@ -61,4 +61,32 @@ func TestConditionalOr(t *testing.T) {
 		assert.Equal(t, sql.Named("v1", 1), args[0])
 		assert.Equal(t, sql.Named("v2", 2), args[1])
 	}
+
+	t.Run("when provided with no arguments", func(t *testing.T) {
+		assert.Panics(t, func() {
+			conditional.Or(nil, nil).Generate(provider)
+		})
+	})
+}
+
+func TestConditionalIn(t *testing.T) {
+	provider := generator.NewIncrementingArgumentNameProvider()
+
+	stmt, args := conditional.In("First", []int{1, 2, 3}).Generate(provider)
+
+	assert.Equal(t, `("First" IN $v1)`, stmt)
+	if assert.Len(t, args, 1) {
+		assert.Equal(t, sql.Named("v1", []int{1, 2, 3}), args[0])
+	}
+}
+
+func TestConditionalNotIn(t *testing.T) {
+	provider := generator.NewIncrementingArgumentNameProvider()
+
+	stmt, args := conditional.NotIn("First", []int{1, 2, 3}).Generate(provider)
+
+	assert.Equal(t, `("First" NOT IN $v1)`, stmt)
+	if assert.Len(t, args, 1) {
+		assert.Equal(t, sql.Named("v1", []int{1, 2, 3}), args[0])
+	}
 }

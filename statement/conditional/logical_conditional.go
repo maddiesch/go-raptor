@@ -14,6 +14,14 @@ func Or(left, right Conditional) Conditional {
 	return &logicalInfixConditional{left, right, "OR"}
 }
 
+func In(column string, values Value) Conditional {
+	return &logicalInfixConditional{ColumnName(column), WrappedValue(values), "IN"}
+}
+
+func NotIn(column string, values Value) Conditional {
+	return &logicalInfixConditional{ColumnName(column), WrappedValue(values), "NOT IN"}
+}
+
 type logicalInfixConditional struct {
 	left     Conditional
 	right    Conditional
