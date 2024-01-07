@@ -25,11 +25,12 @@ const (
 )
 
 type ColumnBuilder struct {
-	name     string
-	cType    ColumnType
-	nullable bool
-	unique   bool
-	pk       bool
+	name           string
+	defaultLiteral string
+	cType          ColumnType
+	nullable       bool
+	unique         bool
+	pk             bool
 }
 
 func (c *ColumnBuilder) NotNull() *ColumnBuilder {
@@ -40,6 +41,12 @@ func (c *ColumnBuilder) NotNull() *ColumnBuilder {
 
 func (c *ColumnBuilder) Unique() *ColumnBuilder {
 	c.unique = true
+
+	return c
+}
+
+func (c *ColumnBuilder) Default(literal string) *ColumnBuilder {
+	c.defaultLiteral = literal
 
 	return c
 }
@@ -59,6 +66,10 @@ func (c *ColumnBuilder) Generate() (string, []any, error) {
 	}
 	if c.unique {
 		q.WriteString(" UNIQUE")
+	}
+	if c.defaultLiteral != "" {
+		q.WriteString(" DEFAULT ")
+		q.WriteString(c.defaultLiteral)
 	}
 
 	return q.Builder.String(), nil, nil
