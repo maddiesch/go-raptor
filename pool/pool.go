@@ -19,6 +19,7 @@ type Pool[T any] interface {
 
 type Config struct {
 	MaxSize int64
+	Preload int64
 }
 
 func New[T any](c Config, fn func(context.Context) (T, error)) Pool[T] {
@@ -79,18 +80,18 @@ func (p *pool[T]) Close(ctx context.Context) error {
 
 	for _, v := range p.values {
 		switch v := any(v).(type) {
-		case Closer:
-			v.Close()
-		case CloseErr:
-			if err := v.Close(); err != nil {
-				return err
-			}
-		case CloseContext:
-			v.Close(ctx)
 		case CloseContextErr:
 			if err := v.Close(ctx); err != nil {
 				return err
 			}
+		case CloseContext:
+			v.Close(ctx)
+		case CloseErr:
+			if err := v.Close(); err != nil {
+				return err
+			}
+		case Closer:
+			v.Close()
 		}
 	}
 
@@ -104,6 +105,18 @@ func (p *pool[T]) Len() int {
 	defer p.mu.Unlock()
 
 	return len(p.values)
+}
+
+func Load[T any](ctx context.Context, p Pool[T], i int) error {
+	for j := 0; j < i; j++ {
+		if v, err := p.Get(ctx); err != nil {
+			return err
+		} else {
+			defer p.Put(v)
+		}
+	}
+
+	return nil
 }
 
 func With[T any](ctx context.Context, pool Pool[T], fn func(T) error) error {
