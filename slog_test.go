@@ -66,4 +66,6 @@ func TestCreateSlogArg(t *testing.T) {
 	assert.Equal(t, slog.Uint64("0", 1), raptor.CreateSlogArg(0, uint(1)))
 	assert.Equal(t, slog.Uint64("0", 1), raptor.CreateSlogArg(0, uint64(1)))
 	assert.Equal(t, slog.Any("v1", "FooBar"), raptor.CreateSlogArg(0, sql.Named("v1", "FooBar")))
+	assert.Equal(t, slog.Any("0", []string{}), raptor.CreateSlogArg(0, []string{}))
+	assert.Equal(t, slog.String("foo", "bar"), raptor.CreateSlogArg(0, slog.String("foo", "bar")))
 }
