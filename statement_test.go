@@ -101,3 +101,19 @@ func TestExecStatement(t *testing.T) {
 	_, err := raptor.ExecStatement(ctx, conn, exec)
 	assert.NoError(t, err)
 }
+
+func TestQueryStatementInsert(t *testing.T) {
+	conn, ctx := test.Setup(t)
+
+	exec := statement.Insert().Into("People").ValueMap(map[string]any{
+		"FirstName": "Taylor",
+		"LastName":  "Swift",
+	}).Returning("FirstName", "LastName")
+
+	var first, last string
+	err := raptor.QueryRowStatement(ctx, conn, exec).Scan(&first, &last)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "Taylor", first)
+	assert.Equal(t, "Swift", last)
+}

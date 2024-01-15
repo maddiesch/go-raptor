@@ -98,3 +98,32 @@ func (b *InsertBuilder) Generate() (string, []any, error) {
 
 	return query.String(), args, nil
 }
+
+func (b *InsertBuilder) Returning(col ...string) *InsertReturnBuilder {
+	return &InsertReturnBuilder{
+		Insert:  b,
+		Columns: col,
+	}
+}
+
+type InsertReturnBuilder struct {
+	Insert  *InsertBuilder
+	Columns []string
+}
+
+func (b *InsertReturnBuilder) Generate() (string, []any, error) {
+	q, args, err := b.Insert.Generate()
+	if err != nil {
+		return "", nil, err
+	}
+
+	var columns []string
+	for _, c := range b.Columns {
+		columns = append(columns, dialect.Identifier(c))
+	}
+	if len(columns) == 0 {
+		columns = append(columns, "*")
+	}
+
+	return q[:len(q)-1] + " RETURNING " + strings.Join(columns, ", ") + ";", args, nil
+}
