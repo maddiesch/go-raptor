@@ -61,4 +61,22 @@ func TestInsertBuilder(t *testing.T) {
 
 		assert.Len(t, args, 0)
 	})
+
+	t.Run("returning", func(t *testing.T) {
+		t.Run("single column", func(t *testing.T) {
+			query, _, err := statement.Insert().Into("TestTable").Value("Name", "MTG").Value("Age", 30).Returning("Name").Generate()
+
+			require.NoError(t, err)
+
+			assert.Equal(t, `INSERT INTO "TestTable" ("Age", "Name") VALUES ($v1, $v2) RETURNING "Name";`, query)
+		})
+
+		t.Run("all columns", func(t *testing.T) {
+			query, _, err := statement.Insert().Into("TestTable").Value("Name", "MTG").Value("Age", 30).Returning().Generate()
+
+			require.NoError(t, err)
+
+			assert.Equal(t, `INSERT INTO "TestTable" ("Age", "Name") VALUES ($v1, $v2) RETURNING *;`, query)
+		})
+	})
 }
