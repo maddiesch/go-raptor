@@ -8,11 +8,17 @@ import (
 	"github.com/maddiesch/go-raptor/statement/generator"
 )
 
-func Equal(column string, value any) Conditional {
-	return &operatorInfixConditional{column, "=", value}
+func Equal(col string, val any) Conditional {
+	if val == nil {
+		return Null(col)
+	}
+	return &operatorInfixConditional{col, "=", val}
 }
 
 func NotEqual(col string, val any) Conditional {
+	if val == nil {
+		return NotNull(col)
+	}
 	return &operatorInfixConditional{col, "!=", val}
 }
 
@@ -42,4 +48,25 @@ func (c *operatorInfixConditional) Generate(provider generator.ArgumentNameProvi
 	name := provider.Next()
 
 	return fmt.Sprintf("%s %s $%s", dialect.Identifier(c.column), c.operator, name), []any{sql.Named(name, c.value)}
+}
+
+func Null(col string) Conditional {
+	return &nullConditional{col, true}
+}
+
+func NotNull(col string) Conditional {
+	return &nullConditional{col, false}
+}
+
+type nullConditional struct {
+	column string
+	isNull bool
+}
+
+func (c *nullConditional) Generate(provider generator.ArgumentNameProvider) (string, []any) {
+	v := "NOT NULL"
+	if c.isNull {
+		v = "NULL"
+	}
+	return fmt.Sprintf("%s IS %s", dialect.Identifier(c.column), v), nil
 }
