@@ -177,6 +177,59 @@ func TestPool(t *testing.T) {
 			p.Put(int64(1))
 		})
 	})
+
+	t.Run("Close with multiple errors", func(t *testing.T) {
+		c := &poolValueCloserContextErr{err: errors.New(t.Name())}
+
+		p := pool.New[any](pool.Config{MaxSize: 2}, func(ctx context.Context) (any, error) {
+			return c, nil
+		})
+
+		pool.Load(context.Background(), p, 2)
+
+		err := p.Close(context.Background())
+		assert.Equal(t, "pool closed with 2 errors", err.Error())
+
+		assert.True(t, c.called.Load())
+	})
+
+	t.Run("with error client", func(t *testing.T) {
+		targetErr := errors.New("create error")
+		p := pool.New[any](pool.Config{MaxSize: 1}, func(ctx context.Context) (any, error) {
+			return nil, targetErr
+		})
+
+		t.Run("Pool.Get", func(t *testing.T) {
+			_, err := p.Get(context.Background())
+			assert.ErrorIs(t, err, targetErr)
+		})
+
+		t.Run("Load", func(t *testing.T) {
+			err := pool.Load(context.Background(), p, 1)
+			assert.ErrorIs(t, err, targetErr)
+		})
+
+		t.Run("With", func(t *testing.T) {
+			err := pool.With(context.Background(), p, func(any) error {
+				return nil
+			})
+			assert.ErrorIs(t, err, targetErr)
+		})
+
+		t.Run("WithValue", func(t *testing.T) {
+			_, err := pool.WithValue(context.Background(), p, func(any) (any, error) {
+				return nil, nil
+			})
+			assert.ErrorIs(t, err, targetErr)
+		})
+
+		t.Run("WithValue2", func(t *testing.T) {
+			_, _, err := pool.WithValue2(context.Background(), p, func(any) (any, any, error) {
+				return nil, nil, nil
+			})
+			assert.ErrorIs(t, err, targetErr)
+		})
+	})
 }
 
 func TestLoad(t *testing.T) {

@@ -50,7 +50,12 @@ func (p *pool[T]) Get(ctx context.Context) (T, error) {
 	defer p.mu.Unlock()
 
 	if len(p.values) == 0 {
-		return p.builder(ctx)
+		if v, err := p.builder(ctx); err != nil {
+			p.semaphore.Release(1)
+			return v, err
+		} else {
+			return v, nil
+		}
 	}
 
 	v := p.values[len(p.values)-1]
