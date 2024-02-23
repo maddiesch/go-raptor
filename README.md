@@ -1,5 +1,7 @@
 # Raptor
 
+[![codecov](https://codecov.io/gh/maddiesch/go-raptor/graph/badge.svg?token=K62CECQYJK)](https://codecov.io/gh/maddiesch/go-raptor)
+
 Raptor is a lightweight SQLite3 wrapper for Go programming language. It provides an easy-to-use interface for working with SQLite3 databases.
 
 ## Features
