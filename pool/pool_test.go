@@ -178,6 +178,20 @@ func TestPool(t *testing.T) {
 		})
 	})
 
+	t.Run("Close Timeout", func(t *testing.T) {
+		p := pool.New(pool.Config{MaxSize: 1}, func(_ context.Context) (int64, error) {
+			return 0, nil
+		})
+		pool.Load(context.Background(), p, 1)
+
+		p.Get(context.Background())
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
+		t.Cleanup(cancel)
+
+		assert.ErrorIs(t, p.Close(ctx), context.DeadlineExceeded)
+	})
+
 	t.Run("Close with multiple errors", func(t *testing.T) {
 		c := &poolValueCloserContextErr{err: errors.New(t.Name())}
 
