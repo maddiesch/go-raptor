@@ -198,6 +198,9 @@ func TestPool(t *testing.T) {
 		p := pool.New[any](pool.Config{MaxSize: 1}, func(ctx context.Context) (any, error) {
 			return nil, targetErr
 		})
+		t.Cleanup(func() {
+			p.Close(context.Background())
+		})
 
 		t.Run("Pool.Get", func(t *testing.T) {
 			_, err := p.Get(context.Background())
