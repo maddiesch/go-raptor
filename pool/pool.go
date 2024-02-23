@@ -2,6 +2,7 @@ package pool
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"golang.org/x/sync/semaphore"
@@ -78,17 +79,19 @@ func (p *pool[T]) Close(ctx context.Context) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
+	var errList []error
+
 	for _, v := range p.values {
 		switch v := any(v).(type) {
 		case CloseContextErr:
 			if err := v.Close(ctx); err != nil {
-				return err
+				errList = append(errList, err)
 			}
 		case CloseContext:
 			v.Close(ctx)
 		case CloseErr:
 			if err := v.Close(); err != nil {
-				return err
+				errList = append(errList, err)
 			}
 		case Closer:
 			v.Close()
@@ -97,7 +100,14 @@ func (p *pool[T]) Close(ctx context.Context) error {
 
 	p.values = make([]T, 0, p.max)
 
-	return nil
+	switch len(errList) {
+	case 0:
+		return nil
+	case 1:
+		return errList[0]
+	default:
+		return &CloseError{Children: errList}
+	}
 }
 
 func (p *pool[T]) Len() int {
@@ -166,4 +176,12 @@ type CloseContext interface {
 
 type CloseContextErr interface {
 	Close(context.Context) error
+}
+
+type CloseError struct {
+	Children []error
+}
+
+func (e *CloseError) Error() string {
+	return fmt.Sprintf("pool closed with %d errors", len(e.Children))
 }
