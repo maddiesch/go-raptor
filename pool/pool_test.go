@@ -63,6 +63,22 @@ func TestPool(t *testing.T) {
 		assert.NoError(t, group.Wait())
 	})
 
+	t.Run("Get Timeout", func(t *testing.T) {
+		v1, _ := p.Get(context.Background())
+		v2, _ := p.Get(context.Background())
+
+		t.Cleanup(func() {
+			p.Put(v1)
+			p.Put(v2)
+		})
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
+		t.Cleanup(cancel)
+		_, err := p.Get(ctx)
+
+		assert.ErrorIs(t, err, context.DeadlineExceeded)
+	})
+
 	t.Run("Closer", func(t *testing.T) {
 		c := &poolValueCloser{}
 
