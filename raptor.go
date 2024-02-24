@@ -254,14 +254,15 @@ var _ DB = (*Conn)(nil)
 var _ DB = (*txConn)(nil)
 
 func (c *Conn) Transact(ctx context.Context, fn func(DB) error) error {
-	return c.transact(ctx, fn)
+	return c.transact(ctx, 0, fn)
 }
 
-func (c *Conn) transact(ctx context.Context, fn func(DB) error) error {
+func (c *Conn) transact(ctx context.Context, depth int, fn func(DB) error) error {
 	savepoint := c.newSavepointName()
 
 	txConn := &txConn{
 		conn:  c,
+		depth: depth,
 		name:  savepoint,
 		state: txStateInit,
 	}
@@ -298,6 +299,7 @@ const (
 
 type txConn struct {
 	conn  *Conn
+	depth int
 	mu    sync.Mutex
 	name  string
 	state uint8
@@ -376,7 +378,7 @@ func (t *txConn) Transact(ctx context.Context, fn func(DB) error) error {
 		return ErrTransactionNotRunning
 	}
 
-	return t.conn.transact(ctx, fn)
+	return t.conn.transact(ctx, t.depth+1, fn)
 }
 
 func (t *txConn) Query(ctx context.Context, query string, args ...any) (*Rows, error) {

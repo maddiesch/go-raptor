@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/maddiesch/go-raptor"
 	"github.com/stretchr/testify/assert"
@@ -19,19 +20,14 @@ func TestPool(t *testing.T) {
 		os.RemoveAll(tempPath)
 	})
 
-	pool := raptor.NewPool(5, func(context.Context) (*raptor.Conn, error) {
-		conn, err := raptor.New(tempPath + "/testing.db?cache=shared")
-		if err != nil {
-			return nil, err
-		}
-
-		return conn, nil
+	p := raptor.NewPool(5, func(context.Context) (*raptor.Conn, error) {
+		return raptor.New(tempPath + "/testing.db?cache=shared")
 	})
 	t.Cleanup(func() {
-		require.NoError(t, pool.Close(context.Background()))
+		require.NoError(t, p.Close(context.Background()))
 	})
 
-	_, err := pool.Exec(context.Background(), `CREATE TABLE "TestTable" ("ID" INTEGER NOT NULL PRIMARY KEY, "Index" INTEGER);`)
+	_, err := p.Exec(context.Background(), `CREATE TABLE "TestTable" ("ID" INTEGER NOT NULL PRIMARY KEY, "Index" INTEGER);`)
 	require.NoError(t, err)
 
 	waitGroup, ctx := errgroup.WithContext(context.Background())
@@ -39,7 +35,7 @@ func TestPool(t *testing.T) {
 	for v := 0; v < 100; v++ {
 		v := v
 		waitGroup.Go(func() error {
-			_, err := pool.Exec(ctx, `INSERT INTO "TestTable" ("Index") VALUES (?);`, v)
+			_, err := p.Exec(ctx, `INSERT INTO "TestTable" ("Index") VALUES (?);`, v)
 			assert.NoError(t, err)
 			return nil
 		})
@@ -48,7 +44,7 @@ func TestPool(t *testing.T) {
 	for v := 0; v < 10; v++ {
 		v := v
 		waitGroup.Go(func() error {
-			return pool.Transact(ctx, func(conn raptor.DB) error {
+			return p.Transact(ctx, func(conn raptor.DB) error {
 				_, err := conn.Exec(ctx, `INSERT INTO "TestTable" ("Index") VALUES (?);`, v)
 
 				assert.NoError(t, err)
@@ -62,7 +58,7 @@ func TestPool(t *testing.T) {
 		waitGroup.Go(func() error {
 			var count int64
 
-			err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM "TestTable";`).Scan(&count)
+			err := p.QueryRow(ctx, `SELECT COUNT(*) FROM "TestTable";`).Scan(&count)
 
 			assert.NoError(t, err)
 
@@ -70,5 +66,46 @@ func TestPool(t *testing.T) {
 		})
 	}
 
+	for v := 0; v < 8; v++ {
+		v := v
+		waitGroup.Go(func() error {
+			var id int64
+
+			err := p.ForWriting(ctx, func(d raptor.DB) error {
+				return d.QueryRow(ctx, `INSERT INTO "TestTable" ("Index") VALUES (?) RETURNING rowid;`, v).Scan(&id)
+			})
+
+			assert.NoError(t, err)
+			assert.NotEqual(t, 0, id)
+
+			return nil
+		})
+	}
+
 	require.NoError(t, waitGroup.Wait())
+
+	t.Run("Pool.QueryRow", func(t *testing.T) {
+		p := raptor.NewPool(1, func(context.Context) (*raptor.Conn, error) {
+			return raptor.New("file:testing.db?cache=shared&mode=memory")
+		})
+		t.Cleanup(func() {
+			require.NoError(t, p.Close(context.Background()))
+		})
+
+		_, done, err := p.Reader(context.Background())
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			require.NoError(t, done())
+		})
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
+		t.Cleanup(cancel)
+
+		row := p.QueryRow(ctx, `SELECT COUNT(*) FROM "TestTable";`)
+		assert.ErrorIs(t, row.Err(), context.DeadlineExceeded)
+		assert.ErrorIs(t, row.Scan(), context.DeadlineExceeded)
+
+		_, err = row.Columns()
+		assert.ErrorIs(t, err, context.DeadlineExceeded)
+	})
 }

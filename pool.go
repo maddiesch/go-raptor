@@ -10,6 +10,12 @@ import (
 // Pool implements a thread-safe pool of database connections.
 //
 // It works as a single-writer multi-reader connection.
+//
+// Warning: The pool is not safe to perform mutating queries:
+// pool.Query(ctx, "INSERT INTO table (id) VALUES (?) RETURNING id", ...)
+// will not lock the pool for writing even though it's a mutating query.
+//
+// If you plan on using mutating queries, you should use ForWriting, or Transact
 type Pool struct {
 	pool.Pool[*Conn]
 
@@ -18,12 +24,18 @@ type Pool struct {
 
 // Create a new pool with the given number of maximum connections.
 func NewPool(size int64, fn func(context.Context) (*Conn, error)) *Pool {
+	if size < 1 {
+		panic("raptor: pool size must be at least 1")
+	}
+
 	config := pool.Config{
 		MaxSize: size,
 	}
 
 	return &Pool{
-		Pool: pool.New[*Conn](config, fn),
+		Pool: pool.New[*Conn](config, func(ctx context.Context) (*Conn, error) {
+			return fn(ctx)
+		}),
 	}
 }
 
@@ -53,7 +65,7 @@ func (p *Pool) QueryRow(ctx context.Context, query string, args ...any) Row {
 		return conn.QueryRow(ctx, query, args...), nil
 	})
 	if err != nil {
-		panic(err)
+		return &poolRowErr{err}
 	}
 	return row
 }
@@ -67,4 +79,49 @@ func (p *Pool) Transact(ctx context.Context, fn func(DB) error) error {
 	})
 }
 
+func (p *Pool) ForWriting(ctx context.Context, fn func(DB) error) error {
+	return pool.With(ctx, p.Pool, func(conn *Conn) error {
+		p.wLock.Lock()
+		defer p.wLock.Unlock()
+
+		return fn(conn)
+	})
+}
+
+func (p *Pool) Reader(ctx context.Context) (DB, func() error, error) {
+	conn, err := p.Pool.Get(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	p.wLock.RLock()
+
+	close := func() error {
+		p.wLock.RUnlock()
+		return p.Pool.Put(conn)
+	}
+
+	return conn, close, nil
+}
+
 var _ DB = (*Pool)(nil)
+
+type poolRowErr struct {
+	err error
+}
+
+func (r *poolRowErr) Scan(...interface{}) error {
+	return r.err
+}
+
+func (r *poolRowErr) Err() error {
+	return r.err
+}
+
+func (r *poolRowErr) Columns() ([]string, error) {
+	return nil, r.err
+}
+
+var (
+	_ Row = (*poolRowErr)(nil)
+)

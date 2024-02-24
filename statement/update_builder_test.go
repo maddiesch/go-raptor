@@ -36,6 +36,11 @@ func TestUpdateBuilder(t *testing.T) {
 			expectedQuery: `UPDATE "testing" SET "name" = $v1 WHERE "id" = $v2 RETURNING "updated_at", 1 AS "ReturnValue";`,
 			expectedArgs:  []any{sql.Named("v1", "Maddie"), sql.Named("v2", 1)},
 		},
+		{
+			statement:     statement.Update("testing").SetMap(map[string]any{"name": "Maddie"}).Where(conditional.Equal("id", 1)).ReturningColumn("updated_at").Returning(statement.UpdateReturnValue{ColumnName: "1", ColumnAlias: "ReturnValue"}),
+			expectedQuery: `UPDATE "testing" SET "name" = $v1 WHERE "id" = $v2 RETURNING "updated_at", 1 AS "ReturnValue";`,
+			expectedArgs:  []any{sql.Named("v1", "Maddie"), sql.Named("v2", 1)},
+		},
 	}
 
 	for _, test := range tests {
