@@ -23,6 +23,8 @@ type Pool struct {
 }
 
 // Create a new pool with the given number of maximum connections.
+//
+// Panic if size is less than 1.
 func NewPool(size int64, fn func(context.Context) (*Conn, error)) *Pool {
 	if size < 1 {
 		panic("raptor: pool size must be at least 1")
@@ -79,6 +81,7 @@ func (p *Pool) Transact(ctx context.Context, fn func(DB) error) error {
 	})
 }
 
+// ForWriting is a helper function to checkout a DB connection for mutating queries.
 func (p *Pool) ForWriting(ctx context.Context, fn func(DB) error) error {
 	return pool.With(ctx, p.Pool, func(conn *Conn) error {
 		p.wLock.Lock()
@@ -88,6 +91,9 @@ func (p *Pool) ForWriting(ctx context.Context, fn func(DB) error) error {
 	})
 }
 
+// Reader is a helper function to checkout a DB connection for read-only queries.
+// It returns a DB interface, and a function that must be called to return the
+// connection to the pool.
 func (p *Pool) Reader(ctx context.Context) (DB, func() error, error) {
 	conn, err := p.Pool.Get(ctx)
 	if err != nil {
