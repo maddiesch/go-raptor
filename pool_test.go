@@ -13,6 +13,14 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+func TestNewPool(t *testing.T) {
+	t.Run("given a size of 0", func(t *testing.T) {
+		assert.Panics(t, func() {
+			raptor.NewPool(0, nil)
+		})
+	})
+}
+
 func TestPool(t *testing.T) {
 	tempPath := filepath.Join(t.TempDir(), "raptor_pool_test")
 	require.NoError(t, os.MkdirAll(tempPath, os.ModeDir|0755))
@@ -120,4 +128,22 @@ func TestPool(t *testing.T) {
 		_, err = row.Columns()
 		assert.ErrorIs(t, err, context.DeadlineExceeded)
 	})
+}
+
+func TestPoolReader(t *testing.T) {
+	p := raptor.NewPool(1, func(context.Context) (*raptor.Conn, error) {
+		return raptor.New("file:testing.db?cache=shared&mode=memory")
+	})
+	t.Cleanup(func() {
+		require.NoError(t, p.Close(context.Background()))
+	})
+
+	_, done, err := p.Reader(context.Background())
+	require.NoError(t, err)
+	t.Cleanup(func() { done() })
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
+	t.Cleanup(cancel)
+	_, _, err = p.Reader(ctx)
+	require.Error(t, err)
 }
