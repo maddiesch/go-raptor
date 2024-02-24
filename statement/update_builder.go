@@ -76,7 +76,7 @@ func (b *UpdateBuilder) Generate() (string, []any, error) {
 	var query query.Builder
 	var args []any
 
-	query.WriteString("UPDATE " + dialect.Identifier(b.table) + " SET")
+	_, _ = query.WriteString("UPDATE " + dialect.Identifier(b.table) + " SET")
 
 	provider := generator.NewIncrementingArgumentNameProvider()
 
@@ -87,12 +87,12 @@ func (b *UpdateBuilder) Generate() (string, []any, error) {
 		args = append(args, sql.Named(vName, up.Value))
 	}
 	if len(values) > 0 {
-		query.WriteString(" " + strings.Join(values, ", "))
+		_, _ = query.WriteString(" " + strings.Join(values, ", "))
 	}
 
 	if b.where != nil {
 		q, wArgs := b.where.Generate(provider)
-		query.WriteString(" WHERE " + q)
+		_, _ = query.WriteString(" WHERE " + q)
 		args = append(args, wArgs...)
 	}
 
@@ -107,7 +107,7 @@ func (b *UpdateBuilder) Generate() (string, []any, error) {
 			}
 			columns = append(columns, s)
 		}
-		query.WriteString(" RETURNING " + strings.Join(columns, ", "))
+		_, _ = query.WriteString(" RETURNING " + strings.Join(columns, ", "))
 	}
 
 	return query.String(), args, nil

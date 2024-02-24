@@ -272,7 +272,7 @@ func (c *Conn) transact(ctx context.Context, depth int, fn func(DB) error) error
 	}
 	defer func() {
 		if p := recover(); p != nil {
-			txConn.rollback(ctx)
+			_ = txConn.rollback(ctx)
 			panic(p)
 		}
 	}()

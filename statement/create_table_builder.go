@@ -53,23 +53,23 @@ func (c *ColumnBuilder) Default(literal string) *ColumnBuilder {
 
 func (c *ColumnBuilder) Generate() (string, []any, error) {
 	var q query.Builder
-	q.WriteString(dialect.Identifier(c.name))
-	q.WriteRune(' ')
-	q.WriteString(string(c.cType))
+	_, _ = q.WriteString(dialect.Identifier(c.name))
+	_, _ = q.WriteRune(' ')
+	_, _ = q.WriteString(string(c.cType))
 
 	if c.pk {
-		q.WriteString(" PRIMARY KEY")
+		_, _ = q.WriteString(" PRIMARY KEY")
 	}
 
 	if !c.nullable {
-		q.WriteString(" NOT NULL")
+		_, _ = q.WriteString(" NOT NULL")
 	}
 	if c.unique {
-		q.WriteString(" UNIQUE")
+		_, _ = q.WriteString(" UNIQUE")
 	}
 	if c.defaultLiteral != "" {
-		q.WriteString(" DEFAULT ")
-		q.WriteString(c.defaultLiteral)
+		_, _ = q.WriteString(" DEFAULT ")
+		_, _ = q.WriteString(c.defaultLiteral)
 	}
 
 	return q.Builder.String(), nil, nil
@@ -103,12 +103,12 @@ func (c *CreateTableBuilder) Column(column ...*ColumnBuilder) *CreateTableBuilde
 func (c *CreateTableBuilder) Generate() (string, []any, error) {
 	var query query.Builder
 
-	query.WriteString("CREATE TABLE")
+	_, _ = query.WriteString("CREATE TABLE")
 	if c.ifNotExists {
-		query.WriteString(" IF NOT EXISTS")
+		_, _ = query.WriteString(" IF NOT EXISTS")
 	}
-	query.WriteStringf(" %s", dialect.Identifier(c.tableName))
-	query.WriteString(" (")
+	_, _ = query.WriteStringf(" %s", dialect.Identifier(c.tableName))
+	_, _ = query.WriteString(" (")
 
 	var args []any
 	var columns []string
@@ -131,9 +131,9 @@ func (c *CreateTableBuilder) Generate() (string, []any, error) {
 		args = append(args, sArgs...)
 	}
 
-	query.WriteString(strings.Join(columns, ", "))
+	_, _ = query.WriteString(strings.Join(columns, ", "))
 
-	query.WriteString(")")
+	_, _ = query.WriteString(")")
 
 	return query.String(), args, nil
 }

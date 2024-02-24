@@ -67,19 +67,19 @@ func (b *InsertBuilder) Generate() (string, []any, error) {
 	var query query.Builder
 	var args []any
 
-	query.WriteString("INSERT ")
+	_, _ = query.WriteString("INSERT ")
 	if b.orReplace {
-		query.WriteString("OR REPLACE ")
+		_, _ = query.WriteString("OR REPLACE ")
 	}
 	if b.orIgnore {
-		query.WriteString("OR IGNORE ")
+		_, _ = query.WriteString("OR IGNORE ")
 	}
-	query.WriteStringf("INTO %s ", dialect.Identifier(b.tableName))
+	_, _ = query.WriteStringf("INTO %s ", dialect.Identifier(b.tableName))
 
 	provider := generator.NewIncrementingArgumentNameProvider()
 
 	if len(b.values) == 0 {
-		query.WriteString("DEFAULT VALUES")
+		_, _ = query.WriteString("DEFAULT VALUES")
 	} else {
 		var columns, values []string
 
@@ -93,7 +93,7 @@ func (b *InsertBuilder) Generate() (string, []any, error) {
 			args = append(args, sql.Named(vName, b.values[column]))
 		}
 
-		query.WriteStringf("(%s) VALUES (%s)", strings.Join(columns, ", "), strings.Join(values, ", "))
+		_, _ = query.WriteStringf("(%s) VALUES (%s)", strings.Join(columns, ", "), strings.Join(values, ", "))
 	}
 
 	return query.String(), args, nil

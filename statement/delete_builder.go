@@ -32,14 +32,14 @@ func (b *DeleteBuilder) Generate() (string, []any, error) {
 	var query query.Builder
 	var args []any
 
-	query.WriteStringf("DELETE FROM %s", dialect.Identifier(b.tableName))
+	_, _ = query.WriteStringf("DELETE FROM %s", dialect.Identifier(b.tableName))
 
 	provider := generator.NewIncrementingArgumentNameProvider()
 
 	if b.where != nil {
 		where, wArgs := b.where.Generate(provider)
 		args = append(args, wArgs...)
-		query.WriteStringf(" WHERE %s", where)
+		_, _ = query.WriteStringf(" WHERE %s", where)
 	}
 
 	return query.String(), args, nil
