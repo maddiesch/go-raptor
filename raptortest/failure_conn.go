@@ -22,8 +22,8 @@ func (*FailureConn) QueryRow(context.Context, string, ...any) raptor.Row {
 	return &failureConnRow{}
 }
 
-func (*FailureConn) Transact(context.Context, func(raptor.DB) error) error {
-	return errors.New("FailureConn.Transact")
+func (f *FailureConn) Transact(_ context.Context, fn func(raptor.DB) error) error {
+	return fn(f)
 }
 
 type failureConnRow struct{}

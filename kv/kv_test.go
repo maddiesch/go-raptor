@@ -5,6 +5,7 @@ import (
 
 	"github.com/maddiesch/go-raptor/internal/test"
 	"github.com/maddiesch/go-raptor/kv"
+	"github.com/maddiesch/go-raptor/raptortest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,6 +15,11 @@ func TestPrepare(t *testing.T) {
 
 	err := kv.Prepare(ctx, conn)
 	assert.NoError(t, err)
+
+	t.Run("failure state", func(t *testing.T) {
+		err := kv.Prepare(ctx, &raptortest.FailureConn{})
+		assert.Error(t, err)
+	})
 }
 
 func TestCRUD(t *testing.T) {

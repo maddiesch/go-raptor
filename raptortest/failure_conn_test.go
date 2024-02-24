@@ -32,8 +32,9 @@ func TestFailureConn(t *testing.T) {
 	})
 
 	t.Run("Transact", func(t *testing.T) {
-		err := c.Transact(context.Background(), func(raptor.DB) error {
-			return nil
+		err := c.Transact(context.Background(), func(tx raptor.DB) error {
+			_, err := tx.Exec(context.Background(), "SELECT 1")
+			return err
 		})
 		assert.Error(t, err)
 	})
