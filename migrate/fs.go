@@ -4,8 +4,6 @@ import (
 	"io/fs"
 	"path/filepath"
 	"strings"
-
-	"github.com/samber/lo"
 )
 
 type FSOptions struct {
@@ -63,9 +61,13 @@ func FromFS(f fs.FS, options ...func(*FSOptions)) ([]Migration, error) {
 		}
 	}
 
-	return lo.Map(migrations, func(m *Migration, _ int) Migration {
-		return lo.FromPtr(m)
-	}), nil
+	result := make([]Migration, len(migrations))
+
+	for i, item := range migrations {
+		result[i] = *item
+	}
+
+	return result, nil
 }
 
 func readDirectoryEntries(f fs.FS, dir string) ([]string, error) {

@@ -8,7 +8,6 @@ import (
 	"github.com/maddiesch/go-raptor/statement/dialect"
 	"github.com/maddiesch/go-raptor/statement/generator"
 	"github.com/maddiesch/go-raptor/statement/query"
-	"github.com/samber/lo"
 )
 
 type InsertValue struct {
@@ -83,7 +82,7 @@ func (b *InsertBuilder) Generate() (string, []any, error) {
 	} else {
 		var columns, values []string
 
-		sortedColumns := lo.Keys(b.values)
+		sortedColumns := keys(b.values)
 		sort.Strings(sortedColumns)
 
 		for _, column := range sortedColumns {
@@ -126,4 +125,14 @@ func (b *InsertReturnBuilder) Generate() (string, []any, error) {
 	}
 
 	return q[:len(q)-1] + " RETURNING " + strings.Join(columns, ", ") + ";", args, nil
+}
+
+func keys[K comparable, V any](in map[K]V) []K {
+	result := make([]K, 0, len(in))
+
+	for k := range in {
+		result = append(result, k)
+	}
+
+	return result
 }
