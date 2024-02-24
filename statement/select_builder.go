@@ -83,30 +83,30 @@ func (b *SelectBuilder) Generate() (string, []any, error) {
 	var query query.Builder
 	var args []any
 
-	query.WriteString("SELECT ")
+	_, _ = query.WriteString("SELECT ")
 
 	if b.isDistinct {
-		query.WriteString("DISTINCT ")
+		_, _ = query.WriteString("DISTINCT ")
 	}
 
 	if len(b.columns) == 0 {
-		query.WriteRune('*')
+		_, _ = query.WriteRune('*')
 	} else {
 		col := lo.Map(b.columns, func(c string, _ int) string {
 			return dialect.Identifier(c)
 		})
-		query.WriteString(strings.Join(col, ", "))
+		_, _ = query.WriteString(strings.Join(col, ", "))
 	}
 
-	query.WriteStringf(" FROM %s", dialect.Identifier(b.tableName))
+	_, _ = query.WriteStringf(" FROM %s", dialect.Identifier(b.tableName))
 
 	provider := generator.NewIncrementingArgumentNameProvider()
 
 	if b.where != nil {
 		where, wArgs := b.where.Generate(provider)
 
-		query.WriteString(" WHERE ")
-		query.WriteString(where)
+		_, _ = query.WriteString(" WHERE ")
+		_, _ = query.WriteString(where)
 
 		args = append(args, wArgs...)
 	}
@@ -115,15 +115,15 @@ func (b *SelectBuilder) Generate() (string, []any, error) {
 		order := strings.Join(lo.Map(b.orderBy, func(o OrderBy, _ int) string {
 			return o.String()
 		}), ", ")
-		query.WriteStringf(" ORDER BY %s", order)
+		_, _ = query.WriteStringf(" ORDER BY %s", order)
 	}
 
 	if b.limit != nil {
-		query.WriteStringf(" LIMIT %d", lo.FromPtr(b.limit))
+		_, _ = query.WriteStringf(" LIMIT %d", lo.FromPtr(b.limit))
 	}
 
 	if b.offset != nil {
-		query.WriteStringf(" OFFSET %d", *b.offset)
+		_, _ = query.WriteStringf(" OFFSET %d", *b.offset)
 	}
 
 	return query.String(), args, nil
