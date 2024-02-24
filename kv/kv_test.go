@@ -1,6 +1,7 @@
 package kv_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/maddiesch/go-raptor/internal/test"
@@ -44,4 +45,11 @@ func TestCRUD(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.False(t, kv.Exists(ctx, conn, "test-key"))
+}
+
+func TestExists(t *testing.T) {
+	conn := new(raptortest.FailureConn)
+
+	v := kv.Exists(context.Background(), conn, "test-key")
+	assert.False(t, v)
 }

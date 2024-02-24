@@ -52,11 +52,19 @@ func Delete(ctx context.Context, db raptor.Executor, key string) error {
 }
 
 func Exists(ctx context.Context, db raptor.Querier, key string) bool {
+	if e, err := ExistsErr(ctx, db, key); err != nil {
+		return false
+	} else {
+		return e
+	}
+}
+
+func ExistsErr(ctx context.Context, db raptor.Querier, key string) (bool, error) {
 	stmt := statement.Select("1").From(KVTableName).Where(conditional.Equal(keyName, key)).Limit(1)
 	var exists bool
 	err := raptor.QueryRowStatement(ctx, db, statement.Exists(stmt)).Scan(&exists)
 	if err != nil {
-		panic(err) // This should never happen because exists shouldn't fail
+		return false, err
 	}
-	return exists
+	return exists, nil
 }
