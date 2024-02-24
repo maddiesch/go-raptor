@@ -1,6 +1,10 @@
 # Raptor
 
+[![tag](https://img.shields.io/github/v/tag/maddiesch/go-raptor.svg)](https://github.com/maddiesch/go-raptor/releases)
+[![GoDoc](https://godoc.org/github.com/maddiesch/go-raptor?status.svg)](https://pkg.go.dev/github.com/maddiesch/go-raptor)
+![Build Status](https://github.com/maddiesch/go-raptor/actions/workflows/ci.yml/badge.svg)
 [![codecov](https://codecov.io/gh/maddiesch/go-raptor/graph/badge.svg?token=K62CECQYJK)](https://codecov.io/gh/maddiesch/go-raptor)
+[![License](https://img.shields.io/github/license/maddiesch/go-raptor)](./LICENSE)
 
 Raptor is a lightweight SQLite3 wrapper for Go programming language. It provides an easy-to-use interface for working with SQLite3 databases.
 

@@ -1,4 +1,4 @@
-name: Golang Test and Build
+name: Test & Build
 on:
   push:
     branches: [main]
