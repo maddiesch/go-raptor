@@ -1,6 +1,6 @@
 module github.com/maddiesch/go-raptor
 
-go 1.20
+go 1.21
 
 require (
 	github.com/samber/lo v1.37.0
