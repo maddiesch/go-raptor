@@ -16,8 +16,8 @@ jobs:
         os: [ubuntu-latest]
         go-version: [1.20.x, 1.21.x, 1.22.x]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
           cache-dependency-path: go.sum
@@ -25,6 +25,6 @@ jobs:
         run: go test -race -coverprofile=coverage.txt -covermode=atomic ./... -timeout 2m
       - name: Upload coverage reports to Codecov
         if: ${{ matrix.go-version == '1.22.x' && matrix.os == 'ubuntu-latest' }}
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
