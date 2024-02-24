@@ -1,10 +1,12 @@
 package raptor_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/maddiesch/go-raptor"
 	"github.com/maddiesch/go-raptor/internal/test"
+	"github.com/maddiesch/go-raptor/raptortest"
 	"github.com/maddiesch/go-raptor/statement"
 	"github.com/maddiesch/go-raptor/statement/conditional"
 	"github.com/stretchr/testify/assert"
@@ -116,4 +118,43 @@ func TestQueryStatementInsert(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "Taylor", first)
 	assert.Equal(t, "Swift", last)
+}
+
+func TestQueryRowStatement_Error(t *testing.T) {
+	row := raptor.QueryRowStatement(context.Background(), nil, new(raptortest.FailureGenerator))
+
+	assert.Error(t, row.Err())
+}
+
+func TestQueryStatement_Error(t *testing.T) {
+	_, err := raptor.QueryStatement(context.Background(), nil, new(raptortest.FailureGenerator))
+
+	assert.Error(t, err)
+}
+
+func TestExecStatement_Error(t *testing.T) {
+	_, err := raptor.ExecStatement(context.Background(), nil, new(raptortest.FailureGenerator))
+
+	assert.Error(t, err)
+}
+
+func TestConn_QueryRowStatement_Error(t *testing.T) {
+	conn, ctx := test.Setup(t)
+	row := conn.QueryRowStatement(ctx, new(raptortest.FailureGenerator))
+
+	assert.Error(t, row.Err())
+}
+
+func TestConn_QueryStatement_Error(t *testing.T) {
+	conn, ctx := test.Setup(t)
+	_, err := conn.QueryStatement(ctx, new(raptortest.FailureGenerator))
+
+	assert.Error(t, err)
+}
+
+func TestConn_ExecStatement_Error(t *testing.T) {
+	conn, ctx := test.Setup(t)
+	_, err := conn.ExecStatement(ctx, new(raptortest.FailureGenerator))
+
+	assert.Error(t, err)
 }
