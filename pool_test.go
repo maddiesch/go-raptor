@@ -82,6 +82,18 @@ func TestPool(t *testing.T) {
 		})
 	}
 
+	waitGroup.Go(func() error {
+		rows, err := p.Query(ctx, `SELECT COUNT(*) FROM "TestTable";`)
+		require.NoError(t, err)
+		defer rows.Close()
+
+		for rows.Next() {
+
+		}
+
+		return nil
+	})
+
 	require.NoError(t, waitGroup.Wait())
 
 	t.Run("Pool.QueryRow", func(t *testing.T) {
