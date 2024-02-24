@@ -119,12 +119,18 @@ var (
 )
 
 // Row is the result of calling QueryRow to select a single row.
-type Row struct {
+type Row interface {
+	Scanner
+
+	Err() error
+}
+
+type connRow struct {
 	rows *sql.Rows
 	err  error
 }
 
-func (r *Row) Scan(dest ...any) error {
+func (r *connRow) Scan(dest ...any) error {
 	if r.err != nil {
 		return r.err
 	}
@@ -151,11 +157,11 @@ func (r *Row) Scan(dest ...any) error {
 	return r.rows.Close()
 }
 
-func (r *Row) Err() error {
+func (r *connRow) Err() error {
 	return r.err
 }
 
-func (r *Row) Columns() ([]string, error) {
+func (r *connRow) Columns() ([]string, error) {
 	if r.err != nil {
 		return nil, r.err
 	}
@@ -188,7 +194,7 @@ func (c *Conn) exec(ctx context.Context, query string, args ...any) (Result, err
 // Querier defines an interface for executing queries that return rows from the database.
 type Querier interface {
 	Query(context.Context, string, ...any) (*Rows, error)
-	QueryRow(context.Context, string, ...any) *Row
+	QueryRow(context.Context, string, ...any) Row
 }
 
 func (c *Conn) Query(ctx context.Context, query string, args ...any) (*Rows, error) {
@@ -206,16 +212,16 @@ func (c *Conn) query(ctx context.Context, query string, args []any) (*Rows, erro
 	return &Rows{r}, nil
 }
 
-func (c *Conn) QueryRow(ctx context.Context, query string, args ...any) *Row {
+func (c *Conn) QueryRow(ctx context.Context, query string, args ...any) Row {
 	return c.queryRow(ctx, query, args)
 }
 
-func (c *Conn) queryRow(ctx context.Context, query string, args []any) *Row {
+func (c *Conn) queryRow(ctx context.Context, query string, args []any) Row {
 	c.queryLogger().LogQuery(ctx, query, args)
 
 	r, err := c.db.QueryContext(ctx, query, args...)
 
-	return &Row{rows: r, err: err}
+	return &connRow{rows: r, err: err}
 }
 
 func (c *Conn) newSavepointName() string {
@@ -384,12 +390,12 @@ func (t *txConn) Query(ctx context.Context, query string, args ...any) (*Rows, e
 	return t.conn.query(ctx, query, args)
 }
 
-func (t *txConn) QueryRow(ctx context.Context, query string, args ...any) *Row {
+func (t *txConn) QueryRow(ctx context.Context, query string, args ...any) Row {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	if t.state != txStateRunning {
-		return &Row{rows: nil, err: ErrTransactionNotRunning}
+		return &connRow{rows: nil, err: ErrTransactionNotRunning}
 	}
 
 	return t.conn.queryRow(ctx, query, args)

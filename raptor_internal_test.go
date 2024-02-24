@@ -10,7 +10,7 @@ import (
 )
 
 func TestRowErrorChecking(t *testing.T) {
-	row := &Row{err: errors.New("testing error")}
+	row := &connRow{err: errors.New("testing error")}
 
 	t.Run("Scan", func(t *testing.T) {
 		assert.Error(t, row.Scan())

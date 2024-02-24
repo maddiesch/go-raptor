@@ -45,8 +45,8 @@ func (p *Pool) Query(ctx context.Context, query string, args ...any) (*Rows, err
 	})
 }
 
-func (p *Pool) QueryRow(ctx context.Context, query string, args ...any) *Row {
-	row, err := pool.WithValue(ctx, p.Pool, func(conn *Conn) (*Row, error) {
+func (p *Pool) QueryRow(ctx context.Context, query string, args ...any) Row {
+	row, err := pool.WithValue(ctx, p.Pool, func(conn *Conn) (Row, error) {
 		p.wLock.RLock()
 		defer p.wLock.RUnlock()
 

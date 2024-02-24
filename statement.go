@@ -6,10 +6,10 @@ import (
 	"github.com/maddiesch/go-raptor/statement/generator"
 )
 
-func QueryRowStatement(ctx context.Context, q Querier, stmt generator.Generator) *Row {
+func QueryRowStatement(ctx context.Context, q Querier, stmt generator.Generator) Row {
 	query, args, err := stmt.Generate()
 	if err != nil {
-		return &Row{err: err}
+		return &connRow{err: err}
 	}
 
 	return q.QueryRow(ctx, query, args...)
@@ -33,10 +33,10 @@ func ExecStatement(ctx context.Context, e Executor, stmt generator.Generator) (R
 	return e.Exec(ctx, query, args...)
 }
 
-func (c *Conn) QueryRowStatement(ctx context.Context, statement generator.Generator) *Row {
+func (c *Conn) QueryRowStatement(ctx context.Context, statement generator.Generator) Row {
 	query, args, err := statement.Generate()
 	if err != nil {
-		return &Row{err: err}
+		return &connRow{err: err}
 	}
 
 	return c.QueryRow(ctx, query, args...)
