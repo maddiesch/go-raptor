@@ -8,7 +8,6 @@ import (
 	"github.com/maddiesch/go-raptor/statement/dialect"
 	"github.com/maddiesch/go-raptor/statement/generator"
 	"github.com/maddiesch/go-raptor/statement/query"
-	"github.com/samber/lo"
 )
 
 type SelectBuilder struct {
@@ -59,13 +58,13 @@ func (b *SelectBuilder) Where(condition conditional.Conditional) *SelectBuilder 
 }
 
 func (b *SelectBuilder) Limit(l int64) *SelectBuilder {
-	b.limit = lo.ToPtr(l)
+	b.limit = &l
 
 	return b
 }
 
 func (b *SelectBuilder) Offset(o int64) *SelectBuilder {
-	b.offset = lo.ToPtr(o)
+	b.offset = &o
 
 	return b
 }
@@ -92,7 +91,7 @@ func (b *SelectBuilder) Generate() (string, []any, error) {
 	if len(b.columns) == 0 {
 		_, _ = query.WriteRune('*')
 	} else {
-		col := lo.Map(b.columns, func(c string, _ int) string {
+		col := mapping(b.columns, func(c string) string {
 			return dialect.Identifier(c)
 		})
 		_, _ = query.WriteString(strings.Join(col, ", "))
@@ -112,14 +111,14 @@ func (b *SelectBuilder) Generate() (string, []any, error) {
 	}
 
 	if len(b.orderBy) > 0 {
-		order := strings.Join(lo.Map(b.orderBy, func(o OrderBy, _ int) string {
+		order := strings.Join(mapping(b.orderBy, func(o OrderBy) string {
 			return o.String()
 		}), ", ")
 		_, _ = query.WriteStringf(" ORDER BY %s", order)
 	}
 
 	if b.limit != nil {
-		_, _ = query.WriteStringf(" LIMIT %d", lo.FromPtr(b.limit))
+		_, _ = query.WriteStringf(" LIMIT %d", *b.limit)
 	}
 
 	if b.offset != nil {
@@ -130,3 +129,13 @@ func (b *SelectBuilder) Generate() (string, []any, error) {
 }
 
 var _ generator.Generator = (*SelectBuilder)(nil)
+
+func mapping[T any, R any](collection []T, fn func(item T) R) []R {
+	result := make([]R, len(collection))
+
+	for i, item := range collection {
+		result[i] = fn(item)
+	}
+
+	return result
+}
