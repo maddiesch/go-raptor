@@ -73,6 +73,24 @@ func TestRecordUnmarshal(t *testing.T) {
 		}
 	})
 
+	t.Run("Unmarshal Pet with all columns", func(t *testing.T) {
+		var pet test.Pet
+		pet.Metadata = "TESTING"
+
+		row := conn.QueryRow(ctx, `SELECT * FROM "Pets" WHERE "Name" = ? LIMIT 1;`, "Sterling")
+		err := raptor.UnmarshalRow(row, &pet)
+
+		require.NoError(t, err)
+
+		assert.Equal(t, "Sterling", pet.Name)
+
+		if assert.NotNil(t, pet.Age) {
+			assert.Equal(t, 5, *pet.Age)
+		}
+
+		assert.Equal(t, "TESTING", pet.Metadata)
+	})
+
 	t.Run("Unmarshal Pet with select columns", func(t *testing.T) {
 		var pet test.Pet
 
@@ -107,6 +125,17 @@ func TestRecordUnmarshal(t *testing.T) {
 
 		assert.Equal(t, "Lulu", pet.Name)
 		assert.Nil(t, pet.Age)
+	})
+
+	t.Run("UnmarshalRow with a nil target", func(t *testing.T) {
+		err := raptor.UnmarshalRow(nil, nil)
+		assert.ErrorIs(t, err, raptor.ErrRequirePointer)
+	})
+
+	t.Run("UnmarshalRow with a non struct target", func(t *testing.T) {
+		var target int
+		err := raptor.UnmarshalRow(nil, &target)
+		assert.ErrorIs(t, err, raptor.ErrRequireStruct)
 	})
 }
 
@@ -147,6 +176,12 @@ func TestMarshalObject(t *testing.T) {
 		assert.Equal(t, "Dog", rec["Type"])
 		assert.Equal(t, "Sterling", rec["Name"])
 		assert.Equal(t, int(5), *rec["Age"].(*int))
+		assert.NotContains(t, rec, "Metadata")
+	})
+
+	t.Run("given a non-struct", func(t *testing.T) {
+		_, err := raptor.MarshalObject(100)
+		assert.ErrorIs(t, err, raptor.ErrRequireStruct)
 	})
 }
 

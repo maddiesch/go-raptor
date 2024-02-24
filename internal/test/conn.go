@@ -46,4 +46,5 @@ type Pet struct {
 	Kind     string `db:"Type"`
 	Name     string
 	Age      *int
+	Metadata string `db:"-"`
 }
